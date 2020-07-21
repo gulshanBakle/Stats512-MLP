@@ -36,7 +36,6 @@ head(cdata)
 ```
 ```{r}
 n=nrow(cdata)
-n
 names(cdata)
 summary(cdata)
 ```
