@@ -1,0 +1,281 @@
+---
+title: "Final Report"
+author: "Gulshankumar Bakle"
+date: "6/8/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(ggplot2)
+setwd('C:/Users/gulsh/OneDrive/Desktop/Spring20/Stats 512/Stats Final Report')
+library(leaps)
+getwd()
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r}
+cat("\n", file = file.choose('CData.xlsx'), append = TRUE)
+#cdata=read.table(file='Concrete_Data.xls')
+#head(cdata)
+
+
+```
+
+```{r}
+cdata=read.csv(file='Cdata.csv')
+
+#head(cdata)
+head(cdata)
+
+```
+```{r}
+n=nrow(cdata)
+n
+names(cdata)
+summary(cdata)
+```
+```{r}
+names(cdata)[names(cdata)=="ï..Cement"]="Cement"
+names(cdata)[names(cdata)=="Blast.Furnace.Slag"]="Blast"
+names(cdata)[names(cdata)=="Fly.Ash"]="Ash"
+names(cdata)[names(cdata)=="Superplasticizer"]="Sp"
+names(cdata)[names(cdata)=="Coarse.Aggregate"]="Coarse"
+names(cdata)[names(cdata)=="Fine.Aggregate"]="Fine"
+names(cdata)[names(cdata)=="Age..day."]="Age"
+names(cdata)[names(cdata)=="Concrete.compressive.strength.MPa..megapascals.."]="Strength(Mpa)"
+
+names(cdata)
+
+
+```
+
+
+```{r}
+pairs(cdata,lower.panel = NULL)
+par(mfrow=c(3,3))
+colnames<-dimnames(cdata)[[2]]
+for (i in 1:9){
+  d<-density(cdata[,i])
+  plot(d,type="n",main=colnames[i])
+  polygon(d,col="orange", border="black")
+}
+
+
+```
+
+```{r}
+names(cdata)
+names(cdata)[names(cdata)=="Strength(Mpa)"]="Strength"
+names(cdata)
+```
+```{r}
+names(cdata)[names(cdata)=="ï..Cement"]="Cement"
+model1=lm(Strength~Cement+Blast+Ash+Water+Sp+Coarse+Fine+Age,data=cdata)
+m1_sum=summary(model1)
+summary(model1)
+anova(model1)
+
+```
+```{r}
+pairs(cdata[,1:9])
+cdata$lBlast=log(cdata$Blast)
+par(mfrow=c(3,4))
+colnames<-dimnames(cdata)[[2]]
+for (i in 1:10){
+  d<-density(cdata[,i])
+  plot(d,type="n",main=colnames[i])
+  polygon(d,col="orange", border="black")
+}
+
+```
+```{r}
+
+cdata$lAsh=log(cdata$Ash)
+par(mfrow=c(3,4))
+colnames<-dimnames(cdata)[[2]]
+for (i in 1:11){
+  d<-density(cdata[,i])
+  plot(d,type="n",main=colnames[i])
+  polygon(d,col="orange", border="black")
+}
+
+
+
+
+
+```
+```{r}
+model1=lm(Strength~Cement+Blast+Ash+Water+Sp+Coarse+Fine+Age,data=cdata)
+model2=lm(Strength~Cement*Blast*Ash*Water*Sp*Coarse*Fine*Age,data=cdata)
+summary(model2)
+anova(model1,model2)
+```
+
+
+```{r}
+#anova(model2)
+model3=lm(Strength~Cement+Blast+Ash+Water+Sp+Age,data=cdata)
+summary(model3)
+anova(model3,model1)
+
+```
+```{r}
+model4=lm(Strength~Cement+Blast+Ash+Water+Sp+Age + Cement*Blast + Cement*Ash + Blast*Ash + Cement*Water + Blast*Water + Ash*Water + Cement*Sp + Blast*Sp + Ash*Sp + Water*Sp + Cement*Age + Blast*Age + Ash*Age + Water*Age + Sp*Age,data=cdata)
+#summary(model4)
+anova(model3,model4)
+
+
+```
+```{r}
+qplot(.fitted,.resid,data=model1)
+qplot(.fitted,.resid,data=model2)
+qplot(.fitted,.resid,data=model3)
+qplot(.fitted,.resid,data=model4)
+```
+```{r}
+model4Lm=regsubsets(Strength~Cement+Blast+Ash+Water+Sp+Age + Cement*Blast + Cement*Ash + Blast*Ash + Cement*Water + Blast*Water + Ash*Water + Cement*Sp + Blast*Sp + Ash*Sp + Water*Sp + Cement*Age + Blast*Age + Ash*Age + Water*Age + Sp*Age,data=cdata,nbest=2,force.in = 1)
+
+model4Lm_Sum=summary(model4Lm)
+model4Lm_Sum
+
+
+
+
+
+
+```
+```{r}
+which.min(model4Lm_Sum$bic)
+which.max(model4Lm_Sum$adjr2)
+
+which.min(model4Lm_Sum$cp)
+
+
+
+```
+```{R}
+Df=with(model4Lm_Sum,data.frame(p=rowSums(which),rss,adjr2,cp,bic))
+#head(Df)
+Df$aic=with(Df,30*log(rss/30)+2*(p+1))
+names(Df)
+which.min(Df$aic)
+which.min(Df$cp)
+which.min(Df$bic)
+which.max(Df$adjr2)
+model4Lm_Sum$which[c(9,13),]
+#totLm_Summary$which
+#head(Df)
+anova(model4)
+  
+```
+```{r}
+n=nrow(cdata)
+train=sample.int(n,round(0.85*n))
+train_dat=cdata[train,]
+test_dat=cdata[-train,]
+
+
+```
+
+```{r}
+model1.train=lm(Strength~Cement + Blast + Ash + Water + Sp + Coarse + Fine + 
+    Age,data=train_dat)
+model2.train=lm(Strength~Cement + Blast + Ash + Water + 
+    Sp + Age,data=train_dat)
+summary(model1.train)
+summary(model2.train)
+anova(model2.train,model1.train)
+
+
+```
+```{r}
+model1.test=predict(model1.train,data=test_dat)
+model2.test=predict(model2.train,data=test_dat)
+summary(model2.test)
+qplot(.fitted,.resid,data=model1.train)
+qplot(.fitted,.resid,data=model2.train)
+
+```
+```{r}
+predict_strength = predict(model1.train,test_dat)
+mean((test_dat$Strength-predict_strength)^2)
+
+predict_strength = predict(model2.train,test_dat)
+mean((test_dat$Strength-predict_strength)^2)
+
+summary(model1.train)
+summary(model2.train)
+```
+```{r}
+new_data = data.frame(Cement=320,
+                     Blast=5,
+                     Ash =55,
+                     Water=200,
+                     Sp=30,
+                     Coarse=980,
+                     Fine=800,
+                     Age=25)
+predict(model1.train,new_data,interval="confidence")
+names(cdata)
+
+
+```
+
+```{r}
+model2.trainLm=regsubsets(Strength~Cement+Blast+Ash+Water+Sp+Age,data=cdata,nbest=2,force.in = 1)
+
+model2.train_Sum=summary(model2.trainLm)
+model2.train_Sum
+
+which.min(model2.train_Sum$bic)
+which.max(model2.train_Sum$adjr2)
+
+which.min(model2.train_Sum$cp)
+
+Df=with(model2.train_Sum,data.frame(p=rowSums(which),rss,adjr2,cp,bic))
+#head(Df)
+Df$aic=with(Df,30*log(rss/30)+2*(p+1))
+names(Df)
+which.min(Df$aic)
+which.min(Df$cp)
+which.min(Df$bic)
+which.max(Df$adjr2)
+model2.train_Sum$which[c(7,9),]
+totLm_Summary$which
+Df
+
+
+```
+```{r}
+qplot(p,cp,data=Df,ylim=c(0,10))+
+  geom_abline(slope=1,intercept=0)
+qplot(p, aic, data=Df) +
+  geom_point(aes(x=p[which.min(Df$aic)],y=aic[which.min(Df$aic)]), color='red', size=I(2.5))
+
+qplot(p,bic, data=Df) +
+   geom_point(aes(x=p[which.min(Df$bic)],y=bic[which.min(Df$bic)]), color='red', size=I(2.5))
+
+```
+```{r}
+confint(model2.train)
+
+
+```
+
+
+
+
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
